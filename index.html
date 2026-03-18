@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hockey Team Attendance</title>
+  <meta name="description" content="One-page shared team schedule and attendance tracker powered by Supabase." />
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121a2b;
+      --panel-2: #18233a;
+      --line: rgba(255,255,255,0.08);
+      --text: #ecf2ff;
+      --muted: #a8b3c9;
+      --accent: #ffd54a;
+      --accent-2: #f7b500;
+      --good: #1fbf75;
+      --bad: #ef5350;
+      --info: #52a5ff;
+      --shadow: 0 20px 50px rgba(0,0,0,0.35);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(255,213,74,0.14), transparent 24%),
+        radial-gradient(circle at top left, rgba(82,165,255,0.12), transparent 20%),
+        linear-gradient(180deg, #09101c 0%, #0b1220 100%);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(255,213,74,0.14), rgba(82,165,255,0.1));
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 26px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4vw, 3.1rem);
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.5;
+      max-width: 65ch;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .badge {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 0.92rem;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .stat .label { color: var(--muted); font-size: 0.92rem; }
+    .stat .value { font-size: 1.8rem; font-weight: 800; margin-top: 8px; }
+
+    .grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(18,26,43,0.92);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .panel h2, .panel h3 {
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .muted { color: var(--muted); }
+    .tiny { font-size: 0.86rem; }
+
+    .stack { display: grid; gap: 12px; }
+    .row { display: grid; gap: 10px; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+    label {
+      font-size: 0.9rem;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea, button {
+      font: inherit;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      outline: none;
+    }
+
+    input::placeholder, textarea::placeholder { color: #94a0b6; }
+    textarea { min-height: 110px; resize: vertical; }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+      font-weight: 700;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #111;
+      box-shadow: 0 10px 25px rgba(247,181,0,0.28);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .btn-good { background: rgba(31,191,117,0.16); color: #b7ffd8; border: 1px solid rgba(31,191,117,0.35); }
+    .btn-bad { background: rgba(239,83,80,0.16); color: #ffd3d2; border: 1px solid rgba(239,83,80,0.35); }
+    .btn-info { background: rgba(82,165,255,0.16); color: #d5e8ff; border: 1px solid rgba(82,165,255,0.35); }
+
+    .status {
+      border-radius: 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+    }
+
+    .status.ok { border-color: rgba(31,191,117,0.35); background: rgba(31,191,117,0.12); color: #c9ffe1; }
+    .status.warn { border-color: rgba(247,181,0,0.35); background: rgba(247,181,0,0.12); color: #ffe9ab; }
+    .status.bad { border-color: rgba(239,83,80,0.35); background: rgba(239,83,80,0.12); color: #ffd3d2; }
+
+    .section-divider {
+      height: 1px;
+      background: var(--line);
+      margin: 4px 0 2px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .toolbar-left, .toolbar-right {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .games {
+      display: grid;
+      gap: 14px;
+    }
+
+    .game-card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+      padding: 16px;
+    }
+
+    .game-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .game-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+
+    .game-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .count-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .count-box {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      border-radius: 16px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .count-box strong {
+      display: block;
+      font-size: 1.2rem;
+      margin-top: 4px;
+    }
+
+    .attendance-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .attendance-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .attendance-person {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(255,255,255,0.035);
+    }
+
+    .attendance-person .name {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .tag {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .tag.yes { background: rgba(31,191,117,0.16); color: #b7ffd8; }
+    .tag.no { background: rgba(239,83,80,0.16); color: #ffd3d2; }
+    .tag.maybe { background: rgba(247,181,0,0.16); color: #ffe9ab; }
+    .tag.none { background: rgba(255,255,255,0.08); color: var(--muted); }
+
+    .hidden { display: none !important; }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    .code {
+      background: #0a1020;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+      font-size: 0.84rem;
+      color: #dce6ff;
+      overflow-x: auto;
+    }
+
+    @media (max-width: 920px) {
+      .hero, .grid { grid-template-columns: 1fr; }
+      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .row-2, .row-3, .game-top, .count-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <h1 id="teamTitle">Team Attendance Hub</h1>
+        <p id="teamSubtitle">A clean, shared team page where parents can check upcoming games and mark whether their player is going. Works as a single file on GitHub Pages, with live shared data powered by Supabase.</p>
+        <div class="hero-badges">
+          <span class="badge">One-page site</span>
+          <span class="badge">Shared live attendance</span>
+          <span class="badge">Mobile-friendly</span>
+          <span class="badge">Roster + game admin</span>
+        </div>
+      </div>
+      <div class="summary">
+        <div class="stat"><div class="label">Roster</div><div class="value" id="statRoster">0</div></div>
+        <div class="stat"><div class="label">Upcoming games</div><div class="value" id="statGames">0</div></div>
+        <div class="stat"><div class="label">Responses</div><div class="value" id="statResponses">0</div></div>
+        <div class="stat"><div class="label">Connection</div><div class="value" id="statConnection">—</div></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <aside class="panel stack">
+        <div>
+          <h2>Parent Check-In</h2>
+          <p class="muted tiny">Choose your player, then mark each game as Going, Not Going, or Maybe.</p>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="familyName">Parent / family name</label>
+            <input id="familyName" placeholder="Example: Bakshi family" />
+          </div>
+          <div>
+            <label for="playerSelect">Player</label>
+            <select id="playerSelect"></select>
+          </div>
+        </div>
+
+        <div class="status warn" id="connectionBanner">Supabase is not connected yet. Add your project URL and anon key in the config section near the top of this file.</div>
+
+        <div class="section-divider"></div>
+
+        <div>
+          <h3>Admin</h3>
+          <p class="muted tiny">You can pre-load your roster, add games manually, or bulk import games by pasting CSV lines.</p>
+        </div>
+
+        <div class="row-2">
+          <div>
+            <label for="teamNameInput">Team name</label>
+            <input id="teamNameInput" placeholder="Surrey Stingers" />
+          </div>
+          <div>
+            <label for="seasonInput">Season label</label>
+            <input id="seasonInput" placeholder="Spring 2026" />
+          </div>
+        </div>
+
+        <button class="btn-secondary" id="saveBrandingBtn">Save heading</button>
+
+        <div class="section-divider"></div>
+
+        <div class="row">
+          <div>
+            <label for="rosterBulk">Pre-populate roster</label>
+            <textarea id="rosterBulk" placeholder="One player per line&#10;Emma&#10;Pavel&#10;Noah"></textarea>
+          </div>
+          <div class="row-2">
+            <button class="btn-primary" id="replaceRosterBtn">Replace roster</button>
+            <button class="btn-secondary" id="addRosterBtn">Add names</button>
+          </div>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="row">
+          <div>
+            <label for="gameTitle">Game title</label>
+            <input id="gameTitle" placeholder="vs Richmond Ravens" />
+          </div>
+          <div class="row-2">
+            <div>
+              <label for="gameDate">Date</label>
+              <input id="gameDate" type="date" />
+            </div>
+            <div>
+              <label for="gameTime">Time</label>
+              <input id="gameTime" type="time" />
+            </div>
+          </div>
+          <div class="row-2">
+            <div>
+              <label for="gameLocation">Location</label>
+              <input id="gameLocation" placeholder="South Surrey Arena" />
+            </div>
+            <div>
+              <label for="gameType">Type</label>
+              <select id="gameType">
+                <option value="Game">Game</option>
+                <option value="Practice">Practice</option>
+                <option value="Tournament">Tournament</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary" id="addGameBtn">Add event</button>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="row">
+          <div>
+            <label for="csvImport">Bulk import events</label>
+            <textarea id="csvImport" placeholder="One event per line in this format:&#10;2026-04-03,18:15,vs Richmond Ravens,South Surrey Arena,Game&#10;2026-04-07,17:00,Practice,North Delta Rec,Practice"></textarea>
+          </div>
+          <button class="btn-secondary" id="importCsvBtn">Import lines</button>
+        </div>
+
+        <details>
+          <summary>Supabase setup</summary>
+          <div class="stack" style="margin-top:12px;">
+            <div class="muted tiny">1. Create a Supabase project.</div>
+            <div class="muted tiny">2. In SQL Editor, run the SQL below.</div>
+            <div class="muted tiny">3. Paste your project URL and anon key into the CONFIG object near the top of this file.</div>
+            <div class="code" id="sqlBlock"></div>
+          </div>
+        </details>
+      </aside>
+
+      <main class="panel">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="pill" id="gamesLabel">Upcoming events</div>
+            <div class="pill" id="seasonLabel">Season not set</div>
+          </div>
+          <div class="toolbar-right">
+            <button class="btn-info" id="refreshBtn">Refresh</button>
+          </div>
+        </div>
+
+        <div id="gamesList" class="games"></div>
+        <div id="emptyState" class="status hidden">No events yet. Add some in the admin panel on the left.</div>
+      </main>
+    </section>
+
+    <div class="footer-note">Built as a single-file page so you can drop it onto GitHub Pages or any simple web server.</div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const CONFIG = {
+      supabaseUrl: 'PASTE_YOUR_SUPABASE_URL_HERE',
+      supabaseAnonKey: 'PASTE_YOUR_SUPABASE_ANON_KEY_HERE',
+      defaultTeamName: 'Surrey Stingers',
+      defaultSeason: 'Spring 2026',
+      timezone: 'America/Vancouver'
+    };
+
+    const PRELOADED_ROSTER = [
+      'Emma',
+      'Pavel'
+    ];
+
+    const SQL_SETUP = `
+create table if not exists public.team_settings (
+  id bigint generated always as identity primary key,
+  team_name text not null default 'Team Attendance Hub',
+  season_label text not null default 'Season',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.players (
+  id bigint generated always as identity primary key,
+  name text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.events (
+  id bigint generated always as identity primary key,
+  title text not null,
+  starts_at timestamptz not null,
+  location text,
+  event_type text not null default 'Game',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.responses (
+  id bigint generated always as identity primary key,
+  event_id bigint not null references public.events(id) on delete cascade,
+  player_id bigint not null references public.players(id) on delete cascade,
+  family_name text,
+  status text not null check (status in ('yes','no','maybe')),
+  updated_at timestamptz not null default now(),
+  unique(event_id, player_id)
+);
+
+alter table public.team_settings enable row level security;
+alter table public.players enable row level security;
+alter table public.events enable row level security;
+alter table public.responses enable row level security;
+
+create policy if not exists "public read team settings"
+on public.team_settings for select to anon using (true);
+
+create policy if not exists "public insert team settings"
+on public.team_settings for insert to anon with check (true);
+
+create policy if not exists "public update team settings"
+on public.team_settings for update to anon using (true) with check (true);
+
+create policy if not exists "public read players"
+on public.players for select to anon using (true);
+
+create policy if not exists "public insert players"
+on public.players for insert to anon with check (true);
+
+create policy if not exists "public delete players"
+on public.players for delete to anon using (true);
+
+create policy if not exists "public read events"
+on public.events for select to anon using (true);
+
+create policy if not exists "public insert events"
+on public.events for insert to anon with check (true);
+
+create policy if not exists "public update events"
+on public.events for update to anon using (true) with check (true);
+
+create policy if not exists "public delete events"
+on public.events for delete to anon using (true);
+
+create policy if not exists "public read responses"
+on public.responses for select to anon using (true);
+
+create policy if not exists "public upsert responses"
+on public.responses for insert to anon with check (true);
+
+create policy if not exists "public update responses"
+on public.responses for update to anon using (true) with check (true);
+
+insert into public.team_settings (team_name, season_label)
+select 'Surrey Stingers', 'Spring 2026'
+where not exists (select 1 from public.team_settings);
+    `.trim();
+
+    document.getElementById('sqlBlock').textContent = SQL_SETUP;
+
+    const state = {
+      supabase: null,
+      connected: false,
+      settings: null,
+      players: [],
+      events: [],
+      responses: []
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    const els = {
+      teamTitle: $('teamTitle'),
+      teamSubtitle: $('teamSubtitle'),
+      playerSelect: $('playerSelect'),
+      familyName: $('familyName'),
+      rosterBulk: $('rosterBulk'),
+      replaceRosterBtn: $('replaceRosterBtn'),
+      addRosterBtn: $('addRosterBtn'),
+      gameTitle: $('gameTitle'),
+      gameDate: $('gameDate'),
+      gameTime: $('gameTime'),
+      gameLocation: $('gameLocation'),
+      gameType: $('gameType'),
+      addGameBtn: $('addGameBtn'),
+      csvImport: $('csvImport'),
+      importCsvBtn: $('importCsvBtn'),
+      gamesList: $('gamesList'),
+      emptyState: $('emptyState'),
+      statRoster: $('statRoster'),
+      statGames: $('statGames'),
+      statResponses: $('statResponses'),
+      statConnection: $('statConnection'),
+      connectionBanner: $('connectionBanner'),
+      refreshBtn: $('refreshBtn'),
+      teamNameInput: $('teamNameInput'),
+      seasonInput: $('seasonInput'),
+      saveBrandingBtn: $('saveBrandingBtn'),
+      seasonLabel: $('seasonLabel'),
+      gamesLabel: $('gamesLabel')
+    };
+
+    function persistLocalIdentity() {
+      localStorage.setItem('team_family_name', els.familyName.value.trim());
+      localStorage.setItem('team_player_name', els.playerSelect.value || '');
+    }
+
+    function restoreLocalIdentity() {
+      els.familyName.value = localStorage.getItem('team_family_name') || '';
+    }
+
+    function formatDateTime(iso) {
+      const d = new Date(iso);
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: CONFIG.timezone,
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      }).format(d);
+    }
+
+    function setStatus(message, kind = '') {
+      els.connectionBanner.textContent = message;
+      els.connectionBanner.className = `status ${kind}`.trim();
+    }
+
+    function updateStats() {
+      els.statRoster.textContent = String(state.players.length);
+      els.statGames.textContent = String(state.events.length);
+      els.statResponses.textContent = String(state.responses.length);
+      els.statConnection.textContent = state.connected ? 'Live' : 'Setup';
+    }
+
+    function applyBranding() {
+      const teamName = state.settings?.team_name || CONFIG.defaultTeamName;
+      const seasonLabel = state.settings?.season_label || CONFIG.defaultSeason;
+      els.teamTitle.textContent = teamName;
+      els.seasonLabel.textContent = seasonLabel;
+      els.teamNameInput.value = teamName;
+      els.seasonInput.value = seasonLabel;
+      els.gamesLabel.textContent = 'Upcoming events';
+    }
+
+    function renderPlayerSelect() {
+      const previous = localStorage.getItem('team_player_name') || '';
+      els.playerSelect.innerHTML = state.players.length
+        ? state.players.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('')
+        : '<option value="">No players yet</option>';
+
+      if (previous && state.players.some(p => p.name === previous)) {
+        els.playerSelect.value = previous;
+      }
+    }
+
+    function groupResponsesByEvent(eventId) {
+      return state.responses.filter(r => r.event_id === eventId);
+    }
+
+    function responseStatusMap(eventId) {
+      const map = new Map();
+      for (const r of groupResponsesByEvent(eventId)) {
+        map.set(r.player_id, r);
+      }
+      return map;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function renderGames() {
+      if (!state.events.length) {
+        els.gamesList.innerHTML = '';
+        els.emptyState.classList.remove('hidden');
+        updateStats();
+        return;
+      }
+
+      els.emptyState.classList.add('hidden');
+
+      const selectedPlayerName = els.playerSelect.value;
+      const selectedPlayer = state.players.find(p => p.name === selectedPlayerName);
+
+      els.gamesList.innerHTML = state.events.map(event => {
+        const byEvent = groupResponsesByEvent(event.id);
+        const yesCount = byEvent.filter(r => r.status === 'yes').length;
+        const noCount = byEvent.filter(r => r.status === 'no').length;
+        const maybeCount = byEvent.filter(r => r.status === 'maybe').length;
+        const statusMap = responseStatusMap(event.id);
+        const selectedResponse = selectedPlayer ? statusMap.get(selectedPlayer.id) : null;
+
+        const peopleHtml = state.players.map(player => {
+          const r = statusMap.get(player.id);
+          const status = r?.status || 'none';
+          const family = r?.family_name ? `<div class="muted tiny">${escapeHtml(r.family_name)}</div>` : '';
+          const label = status === 'yes' ? 'Going' : status === 'no' ? 'Not going' : status === 'maybe' ? 'Maybe' : 'No reply';
+          return `
+            <div class="attendance-person">
+              <div class="name">${escapeHtml(player.name)}</div>
+              <span class="tag ${status}">${label}</span>
+              ${family}
+            </div>
+          `;
+        }).join('');
+
+        const currentTag = selectedResponse?.status === 'yes'
+          ? '<span class="tag yes">Your current reply: Going</span>'
+          : selectedResponse?.status === 'no'
+          ? '<span class="tag no">Your current reply: Not going</span>'
+          : selectedResponse?.status === 'maybe'
+          ? '<span class="tag maybe">Your current reply: Maybe</span>'
+          : '<span class="tag none">No reply yet</span>';
+
+        return `
+          <article class="game-card">
+            <div class="game-top">
+              <div>
+                <div class="game-title">${escapeHtml(event.title)}</div>
+                <div class="game-meta">
+                  <span>${escapeHtml(event.event_type || 'Game')}</span>
+                  <span>${escapeHtml(formatDateTime(event.starts_at))}</span>
+                  <span>${escapeHtml(event.location || 'Location TBD')}</span>
+                </div>
+              </div>
+              <div>${currentTag}</div>
+            </div>
+
+            <div class="count-grid">
+              <div class="count-box"><div class="muted tiny">Going</div><strong>${yesCount}</strong></div>
+              <div class="count-box"><div class="muted tiny">Not going</div><strong>${noCount}</strong></div>
+              <div class="count-box"><div class="muted tiny">Maybe</div><strong>${maybeCount}</strong></div>
+            </div>
+
+            <div class="attendance-actions">
+              <button class="btn-good" data-event-id="${event.id}" data-status="yes">Going</button>
+              <button class="btn-bad" data-event-id="${event.id}" data-status="no">Not Going</button>
+              <button class="btn-secondary" data-event-id="${event.id}" data-status="maybe">Maybe</button>
+              <button class="btn-secondary" data-delete-event-id="${event.id}">Delete</button>
+            </div>
+
+            <div class="attendance-list">${peopleHtml}</div>
+          </article>
+        `;
+      }).join('');
+
+      wireGameButtons();
+      updateStats();
+    }
+
+    function wireGameButtons() {
+      document.querySelectorAll('[data-event-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const eventId = Number(btn.getAttribute('data-event-id'));
+          const status = btn.getAttribute('data-status');
+          await submitResponse(eventId, status);
+        });
+      });
+
+      document.querySelectorAll('[data-delete-event-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const eventId = Number(btn.getAttribute('data-delete-event-id'));
+          const confirmed = window.confirm('Delete this event?');
+          if (!confirmed) return;
+          await deleteEvent(eventId);
+        });
+      });
+    }
+
+    async function connectSupabase() {
+      if (!CONFIG.supabaseUrl || CONFIG.supabaseUrl.includes('PASTE_') || !CONFIG.supabaseAnonKey || CONFIG.supabaseAnonKey.includes('PASTE_')) {
+        setStatus('Supabase is not connected yet. Add your project URL and anon key in the CONFIG object near the top of this file.', 'warn');
+        state.connected = false;
+        updateStats();
+        return false;
+      }
+
+      try {
+        state.supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
+        const { error } = await state.supabase.from('players').select('id', { count: 'exact', head: true });
+        if (error) throw error;
+        state.connected = true;
+        setStatus('Connected to shared live data. Parents on different devices will see the same attendance updates.', 'ok');
+        updateStats();
+        return true;
+      } catch (err) {
+        console.error(err);
+        state.connected = false;
+        setStatus(`Could not connect to Supabase: ${err.message}`, 'bad');
+        updateStats();
+        return false;
+      }
+    }
+
+    async function ensureRosterSeeded() {
+      const { data: existing, error } = await state.supabase.from('players').select('id,name').order('name');
+      if (error) throw error;
+      if (existing.length) return;
+
+      const rows = PRELOADED_ROSTER.filter(Boolean).map(name => ({ name }));
+      if (!rows.length) return;
+      const { error: insertError } = await state.supabase.from('players').insert(rows);
+      if (insertError) throw insertError;
+    }
+
+    async function loadAll() {
+      if (!state.connected) return;
+
+      const [settingsRes, playersRes, eventsRes, responsesRes] = await Promise.all([
+        state.supabase.from('team_settings').select('*').order('id').limit(1),
+        state.supabase.from('players').select('*').order('name'),
+        state.supabase.from('events').select('*').order('starts_at'),
+        state.supabase.from('responses').select('*')
+      ]);
+
+      if (settingsRes.error) throw settingsRes.error;
+      if (playersRes.error) throw playersRes.error;
+      if (eventsRes.error) throw eventsRes.error;
+      if (responsesRes.error) throw responsesRes.error;
+
+      state.settings = settingsRes.data[0] || { team_name: CONFIG.defaultTeamName, season_label: CONFIG.defaultSeason };
+      state.players = playersRes.data;
+      state.events = eventsRes.data;
+      state.responses = responsesRes.data;
+
+      applyBranding();
+      renderPlayerSelect();
+      renderGames();
+    }
+
+    function toIso(dateStr, timeStr) {
+      const local = `${dateStr}T${timeStr || '00:00'}:00`;
+      return new Date(local).toISOString();
+    }
+
+    async function submitResponse(eventId, status) {
+      if (!state.connected) return;
+
+      const familyName = els.familyName.value.trim();
+      const playerName = els.playerSelect.value;
+      const player = state.players.find(p => p.name === playerName);
+
+      if (!player) {
+        alert('Choose a player first.');
+        return;
+      }
+
+      persistLocalIdentity();
+
+      const payload = {
+        event_id: eventId,
+        player_id: player.id,
+        family_name: familyName || null,
+        status,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await state.supabase.from('responses').upsert(payload, { onConflict: 'event_id,player_id' });
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      await loadAll();
+    }
+
+    async function saveBranding() {
+      if (!state.connected) return;
+      const team_name = els.teamNameInput.value.trim() || CONFIG.defaultTeamName;
+      const season_label = els.seasonInput.value.trim() || CONFIG.defaultSeason;
+
+      if (state.settings?.id) {
+        const { error } = await state.supabase.from('team_settings').update({ team_name, season_label }).eq('id', state.settings.id);
+        if (error) return alert(error.message);
+      } else {
+        const { error } = await state.supabase.from('team_settings').insert({ team_name, season_label });
+        if (error) return alert(error.message);
+      }
+
+      await loadAll();
+    }
+
+    function parseRosterLines() {
+      return els.rosterBulk.value
+        .split('\n')
+        .map(v => v.trim())
+        .filter(Boolean);
+    }
+
+    async function replaceRoster() {
+      if (!state.connected) return;
+      const names = [...new Set(parseRosterLines())];
+      if (!names.length) return alert('Add at least one player name.');
+
+      const confirmed = window.confirm('Replace the whole roster? This will delete existing players and their responses.');
+      if (!confirmed) return;
+
+      const playerIds = state.players.map(p => p.id);
+      if (playerIds.length) {
+        const { error: deleteResponsesError } = await state.supabase.from('responses').delete().in('player_id', playerIds);
+        if (deleteResponsesError) return alert(deleteResponsesError.message);
+
+        const { error: deletePlayersError } = await state.supabase.from('players').delete().gt('id', 0);
+        if (deletePlayersError) return alert(deletePlayersError.message);
+      }
+
+      const { error } = await state.supabase.from('players').insert(names.map(name => ({ name })));
+      if (error) return alert(error.message);
+      await loadAll();
+    }
+
+    async function addRosterNames() {
+      if (!state.connected) return;
+      const existing = new Set(state.players.map(p => p.name.toLowerCase()));
+      const names = parseRosterLines().filter(name => !existing.has(name.toLowerCase()));
+      if (!names.length) return alert('No new names to add.');
+      const { error } = await state.supabase.from('players').insert(names.map(name => ({ name })));
+      if (error) return alert(error.message);
+      await loadAll();
+    }
+
+    async function addGame() {
+      if (!state.connected) return;
+      const title = els.gameTitle.value.trim();
+      const date = els.gameDate.value;
+      const time = els.gameTime.value || '00:00';
+      const location = els.gameLocation.value.trim();
+      const event_type = els.gameType.value;
+      if (!title || !date) return alert('Add a title and date.');
+
+      const { error } = await state.supabase.from('events').insert({
+        title,
+        starts_at: toIso(date, time),
+        location,
+        event_type
+      });
+
+      if (error) return alert(error.message);
+
+      els.gameTitle.value = '';
+      els.gameDate.value = '';
+      els.gameTime.value = '';
+      els.gameLocation.value = '';
+      els.gameType.value = 'Game';
+      await loadAll();
+    }
+
+    async function importCsvLines() {
+      if (!state.connected) return;
+      const lines = els.csvImport.value.split('\n').map(v => v.trim()).filter(Boolean);
+      if (!lines.length) return alert('Paste at least one line.');
+
+      const rows = [];
+      for (const line of lines) {
+        const parts = line.split(',').map(v => v.trim());
+        if (parts.length < 4) continue;
+        const [date, time, title, location, event_type = 'Game'] = parts;
+        rows.push({
+          title,
+          starts_at: toIso(date, time || '00:00'),
+          location,
+          event_type: event_type || 'Game'
+        });
+      }
+
+      if (!rows.length) return alert('No valid lines found.');
+      const { error } = await state.supabase.from('events').insert(rows);
+      if (error) return alert(error.message);
+      els.csvImport.value = '';
+      await loadAll();
+    }
+
+    async function deleteEvent(eventId) {
+      if (!state.connected) return;
+      const { error } = await state.supabase.from('events').delete().eq('id', eventId);
+      if (error) return alert(error.message);
+      await loadAll();
+    }
+
+    function subscribeRealtime() {
+      if (!state.connected) return;
+      state.supabase
+        .channel('team-live-updates')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadAll)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, loadAll)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'responses' }, loadAll)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'team_settings' }, loadAll)
+        .subscribe();
+    }
+
+    function wireControls() {
+      els.familyName.addEventListener('input', persistLocalIdentity);
+      els.playerSelect.addEventListener('change', persistLocalIdentity);
+      els.refreshBtn.addEventListener('click', loadAll);
+      els.saveBrandingBtn.addEventListener('click', saveBranding);
+      els.replaceRosterBtn.addEventListener('click', replaceRoster);
+      els.addRosterBtn.addEventListener('click', addRosterNames);
+      els.addGameBtn.addEventListener('click', addGame);
+      els.importCsvBtn.addEventListener('click', importCsvLines);
+    }
+
+    async function boot() {
+      restoreLocalIdentity();
+      wireControls();
+      const connected = await connectSupabase();
+      if (!connected) {
+        state.settings = { team_name: CONFIG.defaultTeamName, season_label: CONFIG.defaultSeason };
+        state.players = PRELOADED_ROSTER.map((name, i) => ({ id: i + 1, name }));
+        state.events = [];
+        state.responses = [];
+        applyBranding();
+        renderPlayerSelect();
+        renderGames();
+        return;
+      }
+
+      await ensureRosterSeeded();
+      await loadAll();
+      subscribeRealtime();
+    }
+
+    boot();
+  </script>
+</body>
+</html>
