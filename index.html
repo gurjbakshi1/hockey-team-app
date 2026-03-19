@@ -823,7 +823,8 @@ where not exists (select 1 from public.team_settings);
 
       try {
         state.supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
-        const { error } = await state.supabase.from('players').select('id', { count: 'exact', head: true });
+        const { data, error } = await state.supabase.from('players').select('*').limit(1);
+        console.log('supabase test', data, error);
         if (error) throw error;
         state.connected = true;
         setStatus('Connected to shared live data. Parents on different devices will see the same attendance updates.', 'ok');
