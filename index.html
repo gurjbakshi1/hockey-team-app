@@ -395,77 +395,91 @@
 
         <div>
           <h3>Admin</h3>
-          <p class="muted tiny">You can pre-load your roster, add games manually, or bulk import games by pasting CSV lines.</p>
+          <p class="muted tiny">Roster and event editing are locked behind an admin PIN. Parents can still submit attendance without seeing admin tools.</p>
         </div>
 
-        <div class="row-2">
+        <div class="row" id="adminLockBox">
           <div>
-            <label for="teamNameInput">Team name</label>
-            <input id="teamNameInput" placeholder="Surrey Stingers" />
-          </div>
-          <div>
-            <label for="seasonInput">Season label</label>
-            <input id="seasonInput" placeholder="Spring 2026" />
-          </div>
-        </div>
-
-        <button class="btn-secondary" id="saveBrandingBtn">Save heading</button>
-
-        <div class="section-divider"></div>
-
-        <div class="row">
-          <div>
-            <label for="rosterBulk">Pre-populate roster</label>
-            <textarea id="rosterBulk" placeholder="One player per line&#10;Emma&#10;Pavel&#10;Noah"></textarea>
+            <label for="adminPinInput">Admin PIN</label>
+            <input id="adminPinInput" type="password" placeholder="Enter admin PIN" />
           </div>
           <div class="row-2">
-            <button class="btn-primary" id="replaceRosterBtn">Replace roster</button>
-            <button class="btn-secondary" id="addRosterBtn">Add names</button>
+            <button class="btn-primary" id="unlockAdminBtn">Unlock admin</button>
+            <button class="btn-secondary" id="lockAdminBtn">Lock admin</button>
           </div>
+          <div class="status" id="adminStatus">Admin tools are locked.</div>
         </div>
 
-        <div class="section-divider"></div>
-
-        <div class="row">
-          <div>
-            <label for="gameTitle">Game title</label>
-            <input id="gameTitle" placeholder="vs Richmond Ravens" />
-          </div>
+        <div id="adminArea" class="hidden stack">
           <div class="row-2">
             <div>
-              <label for="gameDate">Date</label>
-              <input id="gameDate" type="date" />
+              <label for="teamNameInput">Team name</label>
+              <input id="teamNameInput" placeholder="Surrey Stingers" />
             </div>
             <div>
-              <label for="gameTime">Time</label>
-              <input id="gameTime" type="time" />
+              <label for="seasonInput">Season label</label>
+              <input id="seasonInput" placeholder="Spring 2026" />
             </div>
           </div>
-          <div class="row-2">
-            <div>
-              <label for="gameLocation">Location</label>
-              <input id="gameLocation" placeholder="South Surrey Arena" />
-            </div>
-            <div>
-              <label for="gameType">Type</label>
-              <select id="gameType">
-                <option value="Game">Game</option>
-                <option value="Practice">Practice</option>
-                <option value="Tournament">Tournament</option>
-              </select>
-            </div>
-          </div>
-          <button class="btn-primary" id="addGameBtn">Add event</button>
-        </div>
 
-        <div class="section-divider"></div>
+          <button class="btn-secondary" id="saveBrandingBtn">Save heading</button>
 
-        <div class="row">
-          <div>
-            <label for="csvImport">Bulk import events</label>
-            <textarea id="csvImport" placeholder="One event per line in this format:&#10;2026-04-03,18:15,vs Richmond Ravens,South Surrey Arena,Game&#10;2026-04-07,17:00,Practice,North Delta Rec,Practice"></textarea>
+          <div class="section-divider"></div>
+
+          <div class="row">
+            <div>
+              <label for="rosterBulk">Pre-populate roster</label>
+              <textarea id="rosterBulk" placeholder="One player per line&#10;Emma&#10;Pavel&#10;Noah"></textarea>
+            </div>
+            <div class="row-2">
+              <button class="btn-primary" id="replaceRosterBtn">Replace roster</button>
+              <button class="btn-secondary" id="addRosterBtn">Add names</button>
+            </div>
           </div>
-          <button class="btn-secondary" id="importCsvBtn">Import lines</button>
+
+          <div class="section-divider"></div>
+
+          <div class="row">
+            <div>
+              <label for="gameTitle">Game title</label>
+              <input id="gameTitle" placeholder="vs Richmond Ravens" />
+            </div>
+            <div class="row-2">
+              <div>
+                <label for="gameDate">Date</label>
+                <input id="gameDate" type="date" />
+              </div>
+              <div>
+                <label for="gameTime">Time</label>
+                <input id="gameTime" type="time" />
+              </div>
+            </div>
+            <div class="row-2">
+              <div>
+                <label for="gameLocation">Location</label>
+                <input id="gameLocation" placeholder="South Surrey Arena" />
+              </div>
+              <div>
+                <label for="gameType">Type</label>
+                <select id="gameType">
+                  <option value="Game">Game</option>
+                  <option value="Practice">Practice</option>
+                  <option value="Tournament">Tournament</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn-primary" id="addGameBtn">Add event</button>
+          </div>
+
+          <div class="section-divider"></div>
+
+          <div class="row">
+            <div>
+              <label for="csvImport">Bulk import events</label>
+              <textarea id="csvImport" placeholder="One event per line in this format:&#10;2026-04-03,18:15,vs Richmond Ravens,South Surrey Arena,Game&#10;2026-04-07,17:00,Practice,North Delta Rec,Practice"></textarea>
+            </div>
+            <button class="btn-secondary" id="importCsvBtn">Import lines</button>
+          </div>
         </div>
 
         <details>
@@ -502,11 +516,12 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const CONFIG = {
-      supabaseUrl: 'https://spxuajhcmojxtqjjfpbt.supabase.co',
-      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNweHVhamhjbW9qeHRxampmcGJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTcxMzAsImV4cCI6MjA4OTQzMzEzMH0.khRTS7SAfSxLusPXH9-lwXXr6CMNyAR_h5yJtQzn0GM',
+      supabaseUrl: 'PASTE_YOUR_SUPABASE_URL_HERE',
+      supabaseAnonKey: 'PASTE_YOUR_SUPABASE_ANON_KEY_HERE',
       defaultTeamName: 'Surrey Stingers',
       defaultSeason: 'Spring 2026',
-      timezone: 'America/Vancouver'
+      timezone: 'America/Vancouver',
+      adminPin: '1234'
     };
 
     const PRELOADED_ROSTER = [
@@ -637,7 +652,12 @@ where not exists (select 1 from public.team_settings);
       seasonInput: $('seasonInput'),
       saveBrandingBtn: $('saveBrandingBtn'),
       seasonLabel: $('seasonLabel'),
-      gamesLabel: $('gamesLabel')
+      gamesLabel: $('gamesLabel'),
+      adminPinInput: $('adminPinInput'),
+      unlockAdminBtn: $('unlockAdminBtn'),
+      lockAdminBtn: $('lockAdminBtn'),
+      adminArea: $('adminArea'),
+      adminStatus: $('adminStatus')
     };
 
     function persistLocalIdentity() {
@@ -645,8 +665,41 @@ where not exists (select 1 from public.team_settings);
       localStorage.setItem('team_player_name', els.playerSelect.value || '');
     }
 
+    function persistAdminState(isUnlocked) {
+      localStorage.setItem('team_admin_unlocked', isUnlocked ? 'yes' : 'no');
+    }
+
     function restoreLocalIdentity() {
       els.familyName.value = localStorage.getItem('team_family_name') || '';
+    }
+
+    function isAdminUnlocked() {
+      return localStorage.getItem('team_admin_unlocked') === 'yes';
+    }
+
+    function renderAdminState() {
+      const unlocked = isAdminUnlocked();
+      els.adminArea.classList.toggle('hidden', !unlocked);
+      els.adminStatus.textContent = unlocked ? 'Admin tools are unlocked on this device.' : 'Admin tools are locked.';
+      els.adminStatus.className = unlocked ? 'status ok' : 'status';
+    }
+
+    function unlockAdmin() {
+      const pin = els.adminPinInput.value.trim();
+      if (pin !== CONFIG.adminPin) {
+        els.adminStatus.textContent = 'Incorrect PIN.';
+        els.adminStatus.className = 'status bad';
+        return;
+      }
+      persistAdminState(true);
+      els.adminPinInput.value = '';
+      renderAdminState();
+    }
+
+    function lockAdmin() {
+      persistAdminState(false);
+      els.adminPinInput.value = '';
+      renderAdminState();
     }
 
     function formatDateTime(iso) {
@@ -823,8 +876,7 @@ where not exists (select 1 from public.team_settings);
 
       try {
         state.supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
-        const { data, error } = await state.supabase.from('players').select('*').limit(1);
-        console.log('supabase test', data, error);
+        const { error } = await state.supabase.from('players').select('id', { count: 'exact', head: true });
         if (error) throw error;
         state.connected = true;
         setStatus('Connected to shared live data. Parents on different devices will see the same attendance updates.', 'ok');
@@ -911,8 +963,16 @@ where not exists (select 1 from public.team_settings);
       await loadAll();
     }
 
+    function requireAdmin() {
+      if (!isAdminUnlocked()) {
+        alert('Unlock admin tools first.');
+        return false;
+      }
+      return true;
+    }
+
     async function saveBranding() {
-      if (!state.connected) return;
+      if (!state.connected || !requireAdmin()) return;
       const team_name = els.teamNameInput.value.trim() || CONFIG.defaultTeamName;
       const season_label = els.seasonInput.value.trim() || CONFIG.defaultSeason;
 
@@ -935,7 +995,7 @@ where not exists (select 1 from public.team_settings);
     }
 
     async function replaceRoster() {
-      if (!state.connected) return;
+      if (!state.connected || !requireAdmin()) return;
       const names = [...new Set(parseRosterLines())];
       if (!names.length) return alert('Add at least one player name.');
 
@@ -957,7 +1017,7 @@ where not exists (select 1 from public.team_settings);
     }
 
     async function addRosterNames() {
-      if (!state.connected) return;
+      if (!state.connected || !requireAdmin()) return;
       const existing = new Set(state.players.map(p => p.name.toLowerCase()));
       const names = parseRosterLines().filter(name => !existing.has(name.toLowerCase()));
       if (!names.length) return alert('No new names to add.');
@@ -967,7 +1027,7 @@ where not exists (select 1 from public.team_settings);
     }
 
     async function addGame() {
-      if (!state.connected) return;
+      if (!state.connected || !requireAdmin()) return;
       const title = els.gameTitle.value.trim();
       const date = els.gameDate.value;
       const time = els.gameTime.value || '00:00';
@@ -993,7 +1053,7 @@ where not exists (select 1 from public.team_settings);
     }
 
     async function importCsvLines() {
-      if (!state.connected) return;
+      if (!state.connected || !requireAdmin()) return;
       const lines = els.csvImport.value.split('\n').map(v => v.trim()).filter(Boolean);
       if (!lines.length) return alert('Paste at least one line.');
 
@@ -1018,7 +1078,7 @@ where not exists (select 1 from public.team_settings);
     }
 
     async function deleteEvent(eventId) {
-      if (!state.connected) return;
+      if (!state.connected || !requireAdmin()) return;
       const { error } = await state.supabase.from('events').delete().eq('id', eventId);
       if (error) return alert(error.message);
       await loadAll();
@@ -1044,10 +1104,13 @@ where not exists (select 1 from public.team_settings);
       els.addRosterBtn.addEventListener('click', addRosterNames);
       els.addGameBtn.addEventListener('click', addGame);
       els.importCsvBtn.addEventListener('click', importCsvLines);
+      els.unlockAdminBtn.addEventListener('click', unlockAdmin);
+      els.lockAdminBtn.addEventListener('click', lockAdmin);
     }
 
     async function boot() {
       restoreLocalIdentity();
+      renderAdminState();
       wireControls();
       const connected = await connectSupabase();
       if (!connected) {
